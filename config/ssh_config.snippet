@@ -1,0 +1,27 @@
+# 可 Include 进 ~/.ssh/config 的片段
+#
+#   Include /path/to/tailnet-cookbook/config/ssh_config.snippet
+#
+# 前提：tailscaled 以 userspace-networking + SOCKS5 运行，例如：
+#   tailscaled --tun=userspace-networking --socks5-server=127.0.0.1:1055 ...
+#
+# 重要：
+#   * 需要 OpenBSD netcat（支持 -X）。BusyBox 自带 nc 不支持，改用：
+#       ProxyCommand ncat --proxy-type socks5 --proxy 127.0.0.1:1055 %h %p
+#   * %h 必须原样交给代理解析，才能用 *.ts.net（MagicDNS）名字；
+#     等价于 curl 里必须用 socks5h 而不是 socks5。
+#   * 只绑 127.0.0.1，不要把 SOCKS5 端口暴露到 0.0.0.0。
+
+Host *.ts.net tailnet-*
+    ProxyCommand nc -X 5 -x 127.0.0.1:1055 %h %p
+    ConnectTimeout 20
+    ServerAliveInterval 15
+    ServerAliveCountMax 3
+    StrictHostKeyChecking accept-new
+
+# 也可以给具体节点起别名，端口非 22 时在这里写死
+# Host myphone
+#     HostName 100.x.y.z
+#     Port 2222
+#     User root
+#     ProxyCommand nc -X 5 -x 127.0.0.1:1055 %h %p
